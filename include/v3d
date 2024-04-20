@@ -1,0 +1,207 @@
+#pragma once
+
+#include <vector>
+#include "vmath"
+#ifndef __GL_H__
+#include <gl/GL.h>
+#endif
+
+namespace v3d {
+
+class SolidSphere 
+{
+    std::vector<vm::vec3> vertices;
+    std::vector<vm::vec3> normals;
+    std::vector<vm::vec3> normalsv;
+    std::vector<GLushort> indices;
+    float        radius;
+    unsigned int slices;
+    unsigned int stacks;
+
+  public:
+    SolidSphere(float radius, unsigned int slices, unsigned int stacks)
+        : radius { radius }
+        , slices { slices }
+        , stacks { stacks }
+    {
+        unsigned int nhalfStacks  = (stacks+1)/2;
+        unsigned int nhalfStacks1 = nhalfStacks + 1;
+        vertices.reserve((slices+1) * nhalfStacks1);
+        normals.reserve((slices+1) * nhalfStacks1);
+        normalsv.reserve((slices+1) * nhalfStacks1 * 2);
+        indices.reserve(slices * (nhalfStacks1) * 6);
+        vm::vec3 vEnd = {0.f, -radius, 0.f}; 
+        vm::vec3 nEnd = {0.f, -1.f, 0.f}; 
+        for(unsigned int i = 0; i <= slices; i++) 
+        {
+            float inorm = float(i)/(slices);
+            for(unsigned int j = 0; j < nhalfStacks; j++) 
+            {
+                float jnorm = float(j)/(stacks);
+                float jcos  = std::cos(vm::norm2rad(jnorm));
+                float jsin  = std::sin(vm::norm2rad(jnorm));
+                vm::vec3 n = vm::vec3{ 
+                    std::cos(vm::norm2rad(inorm))*jsin, 
+                    jcos, 
+                    std::sin(vm::norm2rad(inorm))*jsin
+                };
+                vm::vec3 v = n * radius;
+                vertices.push_back(v); 
+                normals.push_back(n); 
+                normalsv.push_back(v);
+                normalsv.push_back(v+n*radius*.5f);
+            }
+            vertices.push_back(vEnd); 
+            normals.push_back(nEnd); 
+            normalsv.push_back(vEnd);
+            normalsv.push_back(vEnd+nEnd*radius*.5f);
+        }
+        for(unsigned int i = 1; i <= slices; i++) 
+        {
+            for(unsigned int j = 1; j <= nhalfStacks; j++) 
+            { 
+                indices.push_back((i-1)*nhalfStacks1+(j-1));
+                indices.push_back((i-0)*nhalfStacks1+(j-1));
+                indices.push_back((i-0)*nhalfStacks1+(j-0));
+                indices.push_back((i-0)*nhalfStacks1+(j-0));
+                indices.push_back((i-1)*nhalfStacks1+(j-0));
+                indices.push_back((i-1)*nhalfStacks1+(j-1));
+            }
+        }
+    }
+
+    void render(bool wireFrame = false, bool normalVectors = false)
+    {
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        glVertexPointer(3, GL_FLOAT, sizeof(vm::vec3), &vertices[0]);
+        glNormalPointer(GL_FLOAT, sizeof(vm::vec3), &normals[0]);
+        if(wireFrame)
+            glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_SHORT, &indices[0]);
+        else
+            glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, &indices[0]);
+        glDisableClientState(GL_NORMAL_ARRAY);
+        glDisableClientState(GL_VERTEX_ARRAY);
+        if(normalVectors)
+        {
+            glEnableClientState(GL_VERTEX_ARRAY);
+            glPushAttrib(GL_ENABLE_BIT|GL_COLOR_BUFFER_BIT);
+            glDisable(GL_LIGHTING);
+            glColor3f(0,1,1);
+            glVertexPointer(3, GL_FLOAT, sizeof(vm::vec3), &normalsv[0]);
+            glDrawArrays(GL_LINES, 0, normalsv.size());
+            glPopAttrib();
+            glDisableClientState(GL_VERTEX_ARRAY);
+        }
+    }
+
+    
+    std::vector<vm::vec3> const & getVertices() const { return vertices; }
+    std::vector<vm::vec3> const & getNormals()  const { return normals; }
+    std::vector<GLushort> const & getIndices()  const { return indices; }
+    float        getRadius() const { return radius; }
+    unsigned int getSlices() const { return slices; }
+    unsigned int getStacks() const { return stacks; }
+
+};
+
+class SolidTorus 
+{
+    std::vector<vm::vec3> vertices;
+    std::vector<vm::vec3> normals;
+    std::vector<vm::vec3> normalsv;
+    std::vector<GLushort> indices;
+    float        radius;
+    float        ringRadius;
+    unsigned int slices;
+    unsigned int stacks;
+
+  public:
+    SolidTorus(float radius, float ringRadius, unsigned int slices, unsigned int stacks)
+        : radius     { radius }
+        , ringRadius { ringRadius }
+        , slices     { slices }
+        , stacks     { stacks }
+    {
+        unsigned int slices1 = slices + 1;
+        unsigned int stacks1 = stacks + 1;
+        vertices.reserve(slices1 * stacks1);
+        normals.reserve(slices1 * stacks1);
+        normalsv.reserve(slices1 * stacks1 * 2);
+        indices.reserve(slices1 * stacks1 * 6);
+        for(unsigned int i = 0; i <= slices; i++) 
+        {
+            float inorm = float(i)/(slices);
+            for(unsigned int j = 0; j <= stacks; j++) 
+            {
+                float jnorm = float(j)/(stacks);
+                float jcos  = -std::sin(vm::norm2rad(jnorm));
+                float jsin  = std::cos(vm::norm2rad(jnorm));
+                vm::vec3 n = vm::vec3{ 
+                    std::cos(vm::norm2rad(inorm))*jsin, 
+                    jcos, 
+                    std::sin(vm::norm2rad(inorm))*jsin
+                };
+                vm::vec3 v = vm::vec3{ 
+                    std::cos(vm::norm2rad(inorm))*(radius*jsin + ringRadius), 
+                    radius*jcos, 
+                    std::sin(vm::norm2rad(inorm))*(radius*jsin + ringRadius)
+                };
+                vertices.push_back(v); 
+                normals.push_back(n); 
+                normalsv.push_back(v);
+                normalsv.push_back(v+n*radius*.5f);
+            }
+        }
+        for(unsigned int i = 1; i <= slices; i++) 
+        {
+            for(unsigned int j = 1; j <= stacks; j++) 
+            {
+                indices.push_back((i-1)*stacks1+(j-1));
+                indices.push_back((i-0)*stacks1+(j-1));
+                indices.push_back((i-0)*stacks1+(j-0));
+                indices.push_back((i-0)*stacks1+(j-0));
+                indices.push_back((i-1)*stacks1+(j-0));
+                indices.push_back((i-1)*stacks1+(j-1));
+            }
+        }
+    }
+
+    void render(bool wireFrame = false, bool normalVectors = false)
+    {
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        glVertexPointer(3, GL_FLOAT, sizeof(vm::vec3), &vertices[0]);
+        glNormalPointer(GL_FLOAT, sizeof(vm::vec3), &normals[0]);
+        if(wireFrame)
+            glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_SHORT, &indices[0]);
+        else
+            glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, &indices[0]);
+        glDisableClientState(GL_NORMAL_ARRAY);
+        glDisableClientState(GL_VERTEX_ARRAY);
+        if(normalVectors)
+        {
+            glEnableClientState(GL_VERTEX_ARRAY);
+            glPushAttrib(GL_ENABLE_BIT|GL_COLOR_BUFFER_BIT);
+            glDisable(GL_LIGHTING);
+            glColor3f(0,1,1);
+            glVertexPointer(3, GL_FLOAT, sizeof(vm::vec3), &normalsv[0]);
+            glDrawArrays(GL_LINES, 0, normalsv.size());
+            glPopAttrib();
+            glDisableClientState(GL_VERTEX_ARRAY);
+        }
+    }
+
+    
+    std::vector<vm::vec3> const & getVertices() const { return vertices; }
+    std::vector<vm::vec3> const & getNormals()  const { return normals; }
+    std::vector<GLushort> const & getIndices()  const { return indices; }
+    float        getRadius()     const { return radius; }
+    float        getRingRadius() const { return ringRadius; }
+    unsigned int getSlices()     const { return slices; }
+    unsigned int getStacks()     const { return stacks; }
+
+};
+
+} // namespace v3d
+

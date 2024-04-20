@@ -1,0 +1,559 @@
+/**
+ * vmath v1.3.5
+ * 
+ * @brief: Description: A lightweight math library for 3D graphics.
+ * @author: Natnael Eshetu
+ * @date: Feb 14, 2024
+ * @note: uses row major matrices. use vm::transpose to get a column major matrix.
+ * 
+ */
+
+#pragma once
+
+#include <cmath>
+
+namespace vm {
+
+static constexpr float PI     = 3.14159265358979323846f;
+static constexpr float HALFPI = PI/2.f;
+static constexpr float TWOPI  = PI*2.f;
+
+/* angle */
+
+template <typename T> static T deg2rad(T deg) { return deg * PI / 180.f; }
+template <typename T> static T rad2deg(T rad) { return rad * 180.f / PI; }
+template <typename T> static T deg2norm(T deg)  { return deg / 360.f; }
+template <typename T> static T norm2deg(T norm) { return norm * 360.f; }
+template <typename T> static T rad2norm(T rad)  { return rad / TWOPI; }
+template <typename T> static T norm2rad(T norm) { return norm * TWOPI; }
+
+
+/* utitlities */
+
+template <typename T> static T max(T a, T b) { return a > b ? a : b; }
+template <typename T> static T min(T a, T b) { return a < b ? a : b; }
+
+/* vec2 */
+
+template <typename T>
+struct vec2t {
+    union {
+        T dim[2];
+        struct { T x, y; };
+    };
+    
+    vec2t() : dim{} {}
+    template <typename ...U>
+    vec2t(U... args) : dim{ T(args)... } {}
+    vec2t(T const (& vec)[2]) : dim{ vec[0], vec[1] } {}
+    vec2t(T const * ptr) : dim{ ptr[0], ptr[1] } {}
+    vec2t(T fill) : dim{ fill, fill } {}
+
+    T * ptr() { return &dim[0]; }
+    T const * ptr() const { return &dim[0]; }
+    vec2t<T> xy() const { return { x, y }; }
+};
+
+using vec2 = vec2t<float>;
+
+template <typename T> static vec2t<T> operator-(vec2t<T> const & a) { return { -a.x, -a.y }; }
+template <typename T> static vec2t<T> operator+(vec2t<T> const & a, vec2t<T> const & b) { return { a.x + b.x, a.y + b.y }; }
+template <typename T> static vec2t<T> operator-(vec2t<T> const & a, vec2t<T> const & b) { return { a.x - b.x, a.y - b.y }; }
+
+template <typename T> static vec2t<T> operator+(vec2t<T> const & a, T b) { return { a.x + b, a.y + b }; }
+template <typename T> static vec2t<T> operator-(vec2t<T> const & a, T b) { return { a.x - b, a.y - b }; }
+template <typename T> static vec2t<T> operator*(vec2t<T> const & a, T b) { return { a.x * b, a.y * b }; }
+template <typename T> static vec2t<T> operator/(vec2t<T> const & a, T b) { return { a.x / b, a.y / b }; }
+template <typename T> static vec2t<T> operator+(T a, vec2t<T> const & b) { return { a + b.x, a + b.y }; }
+template <typename T> static vec2t<T> operator-(T a, vec2t<T> const & b) { return { a - b.x, a - b.y }; }
+template <typename T> static vec2t<T> operator*(T a, vec2t<T> const & b) { return { a * b.x, a * b.y }; }
+template <typename T> static vec2t<T> operator/(T a, vec2t<T> const & b) { return { a / b.x, a / b.y }; }
+
+template <typename T>
+static T
+magnitude(vec2t<T> const & a)
+{
+    return sqrt(a.x * a.x + a.y * a.y);
+}
+
+template <typename T>
+static vec2t<T>
+normal(vec2t<T> const & a)
+{
+    return a / magnitude(a);
+}
+
+template <typename T>
+static T
+dot(vec2t<T> const & a, vec2t<T> const & b)
+{
+    return a.x * b.x + a.y * b.y;
+}
+
+template <typename T>
+static T
+cross(vec2t<T> const & a, vec2t<T> const & b)
+{
+    return a.x * b.y - a.y * b.x;
+}
+
+template <typename T, class OS>
+static OS &
+operator<<(OS & out, vec2t<T> const & vec2)
+{
+    return out << " <" << vec2.x << "," << vec2.y << "> ";
+}
+
+/* vec3 */
+
+template <typename T>
+struct vec3t {
+    union {
+        T dim[3];
+        struct { T x, y, z; };
+    };
+
+    vec3t() : dim{} {}
+    template <typename ...U>
+    vec3t(U... args) : dim{ T(args)... } {}
+    vec3t(T const (& vec)[3]) : dim{ vec[0], vec[1], vec[2] } {}
+    vec3t(T const * ptr) : dim{ ptr[0], ptr[1], ptr[2] } {}
+    vec3t(T fill) : dim{ fill, fill, fill } {}
+
+    T * ptr() { return &dim[0]; }
+    T const * ptr() const { return &dim[0]; }
+    vec2t<T> xy() const   { return { x, y }; }
+    vec3t<T> xyz() const  { return { x, y, z }; }
+};
+
+using vec3 = vec3t<float>;
+
+template <typename T> static vec3t<T> operator-(vec3t<T> const & a) { return { -a.x, -a.y, -a.z }; }
+template <typename T> static vec3t<T> operator+(vec3t<T> const & a, vec3t<T> const & b) { return { a.x + b.x, a.y + b.y, a.z + b.z }; }
+template <typename T> static vec3t<T> operator-(vec3t<T> const & a, vec3t<T> const & b) { return { a.x - b.x, a.y - b.y, a.z - b.z }; }
+
+template <typename T> static vec3t<T> operator+(vec3t<T> const & a, T b) { return { a.x + b, a.y + b, a.z + b }; }
+template <typename T> static vec3t<T> operator-(vec3t<T> const & a, T b) { return { a.x - b, a.y - b, a.z - b }; }
+template <typename T> static vec3t<T> operator*(vec3t<T> const & a, T b) { return { a.x * b, a.y * b, a.z * b }; }
+template <typename T> static vec3t<T> operator/(vec3t<T> const & a, T b) { return { a.x / b, a.y / b, a.z / b }; }
+template <typename T> static vec3t<T> operator+(T a, vec3t<T> const & b) { return { a + b.x, a + b.y, a + b.z }; }
+template <typename T> static vec3t<T> operator-(T a, vec3t<T> const & b) { return { a - b.x, a - b.y, a - b.z }; }
+template <typename T> static vec3t<T> operator*(T a, vec3t<T> const & b) { return { a * b.x, a * b.y, a * b.z }; }
+template <typename T> static vec3t<T> operator/(T a, vec3t<T> const & b) { return { a / b.x, a / b.y, a / b.z }; }
+
+template <typename T>
+static T
+magnitude(vec3t<T> const & a)
+{
+    return sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+}
+
+template <typename T>
+static vec3t<T>
+normal(vec3t<T> const & a)
+{
+    return a / magnitude(a);
+}
+
+template <typename T>
+static T
+dot(vec3t<T> const & a, vec3t<T> const & b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+template <typename T>
+static vec3t<T>
+cross(vec3t<T> const & a, vec3t<T> const & b)
+{
+    return { 
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x
+    };
+}
+
+template <typename T, class OS>
+static OS &
+operator<<(OS & out, vec3t<T> const & vec3)
+{
+    return out << " <" << vec3.x << "," << vec3.y << "," << vec3.z << "> ";
+}
+
+/* vec4 */
+
+template <typename T>
+struct vec4t {
+    union {
+        T dim[4];
+        struct { T x, y, z, w; };
+    };
+    
+    vec4t() : dim{} {}
+    template <typename ...U>
+    vec4t(U... args) : dim{ T(args)... } {}
+    vec4t(T const (& vec)[4]) : dim{ vec[0], vec[1], vec[2], vec[3] } {}
+    vec4t(T const * ptr) : dim{ ptr[0], ptr[1], ptr[2], ptr[3] } {}
+    vec4t(T fill) : dim{ fill, fill, fill, fill } {}
+
+    T * ptr() { return &dim[0]; }
+    T const * ptr() const { return &dim[0]; }
+    vec2t<T> xy()   const { return { x, y }; }
+    vec3t<T> xyz()  const { return { x, y, z }; }
+    vec4t<T> xyzw() const { return { x, y, z, w }; }
+};
+
+using vec4 = vec4t<float>;
+
+template <typename T> static vec4t<T> operator-(vec4t<T> const & a) { return { -a.x, -a.y, -a.z, -a.w }; }
+template <typename T> static vec4t<T> operator+(vec4t<T> const & a, vec4t<T> const & b) { return { a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w }; }
+template <typename T> static vec4t<T> operator-(vec4t<T> const & a, vec4t<T> const & b) { return { a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w }; }
+
+template <typename T> static vec4t<T> operator+(vec4t<T> const & a, T b) { return { a.x + b, a.y + b, a.z + b, a.w + b }; }
+template <typename T> static vec4t<T> operator-(vec4t<T> const & a, T b) { return { a.x - b, a.y - b, a.z - b, a.w - b }; }
+template <typename T> static vec4t<T> operator*(vec4t<T> const & a, T b) { return { a.x * b, a.y * b, a.z * b, a.w * b }; }
+template <typename T> static vec4t<T> operator/(vec4t<T> const & a, T b) { return { a.x / b, a.y / b, a.z / b, a.w / b }; }
+template <typename T> static vec4t<T> operator+(T a, vec4t<T> const & b) { return { a + b.x, a + b.y, a + b.z, a + b.w }; }
+template <typename T> static vec4t<T> operator-(T a, vec4t<T> const & b) { return { a - b.x, a - b.y, a - b.z, a - b.w }; }
+template <typename T> static vec4t<T> operator*(T a, vec4t<T> const & b) { return { a * b.x, a * b.y, a * b.z, a * b.w }; }
+template <typename T> static vec4t<T> operator/(T a, vec4t<T> const & b) { return { a / b.x, a / b.y, a / b.z, a / b.w }; }
+
+template <typename T>
+static T
+magnitude(vec4t<T> const & a)
+{
+    return sqrt(a.x * a.x + a.y * a.y + a.z * a.z + a.w * a.w);
+}
+
+template <typename T>
+static vec4t<T>
+normal(vec4t<T> const & a)
+{
+    return a / magnitude(a);
+}
+
+template <typename T>
+static T
+dot(vec4t<T> const & a, vec4t<T> const & b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+}
+
+
+template <typename T, class OS>
+static OS &
+operator<<(OS & out, vec4t<T> const & vec4)
+{
+    return out << " <" << vec4.x << "," << vec4.y << "," << vec4.z << "," << vec4.w << "> ";
+}
+
+
+/* mat4 */
+
+template <typename T>
+struct mat4t {
+    union {
+        T dim[4*4];
+        T row[4][4];
+    };
+
+    mat4t() : dim{} {}
+    template <typename ...U>
+    mat4t(U... args) : dim{ T(args)... } {}
+    mat4t(T diagonalFill) : dim{ 
+        diagonalFill, 0, 0, 0, 
+        0, diagonalFill, 0, 0, 
+        0, 0, diagonalFill, 0, 
+        0, 0, 0, diagonalFill, 
+    } {}
+
+    mat4t(vec4t<T> diagonalFill) : dim{ 
+        diagonalFill.x, 0, 0, 0, 
+        0, diagonalFill.y, 0, 0, 
+        0, 0, diagonalFill.z, 0, 
+        0, 0, 0, diagonalFill.w, 
+    } {}
+
+    T * ptr() { return &dim[0]; }
+    T const * ptr() const { return &dim[0]; }
+    vec4t<T> row0() const { return { row[0][0], row[0][1], row[0][2], row[0][3] }; }
+    vec4t<T> row1() const { return { row[1][0], row[1][1], row[1][2], row[1][3] }; }
+    vec4t<T> row2() const { return { row[2][0], row[2][1], row[2][2], row[2][3] }; }
+    vec4t<T> row3() const { return { row[3][0], row[3][1], row[3][2], row[3][3] }; }
+    vec4t<T> col0() const { return { row[0][0], row[1][0], row[2][0], row[3][0] }; }
+    vec4t<T> col1() const { return { row[0][1], row[1][1], row[2][1], row[3][1] }; }
+    vec4t<T> col2() const { return { row[0][2], row[1][2], row[2][2], row[3][2] }; }
+    vec4t<T> col3() const { return { row[0][3], row[1][3], row[2][3], row[3][3] }; }
+};
+
+using mat4 = mat4t<float>;
+
+template <typename T>
+static T
+operator+(mat4t<T> const & a, mat4t<T> const & b)
+{
+    return { a.row0() + b.row0(), a.row1() + b.row1(), a.row2() + b.row2(), a.row3() + b.row3() };
+}
+
+template <typename T>
+static T
+operator-(mat4t<T> const & a, mat4t<T> const & b)
+{
+    return { a.row0() - b.row0(), a.row1() - b.row1(), a.row2() - b.row2(), a.row3() - b.row3() };
+}
+
+template <typename T>
+static mat4t<T>
+operator*(mat4t<T> const & a, mat4t<T> const & b)
+{
+    return {
+        dot(a.row0(), b.col0()), dot(a.row0(), b.col1()), dot(a.row0(), b.col2()), dot(a.row0(), b.col3()),
+        dot(a.row1(), b.col0()), dot(a.row1(), b.col1()), dot(a.row1(), b.col2()), dot(a.row1(), b.col3()),
+        dot(a.row2(), b.col0()), dot(a.row2(), b.col1()), dot(a.row2(), b.col2()), dot(a.row2(), b.col3()),
+        dot(a.row3(), b.col0()), dot(a.row3(), b.col1()), dot(a.row3(), b.col2()), dot(a.row3(), b.col3())
+    };
+}
+
+template <typename T>
+static vec4t<T>
+operator*(mat4t<T> const & a, vec4t<T> const & b)
+{
+    return {
+        dot(a.row0(), b),
+        dot(a.row1(), b),
+        dot(a.row2(), b),
+        dot(a.row3(), b)
+    };
+}
+
+template <typename T>
+static vec3t<T>
+operator*(mat4t<T> const & a, vec3t<T> const & b)
+{
+    return {
+        dot(a.row0(), vec4t<T>{b.x, b.y, b.z, 1}),
+        dot(a.row1(), vec4t<T>{b.x, b.y, b.z, 1}),
+        dot(a.row2(), vec4t<T>{b.x, b.y, b.z, 1})
+    };
+}
+
+template <typename T>
+static mat4t<T>
+identity()
+{
+    return { 
+        1, 0, 0, 0, 
+        0, 1, 0, 0, 
+        0, 0, 1, 0, 
+        0, 0, 0, 1 
+    };
+}
+
+template <typename T>
+static mat4t<T>
+diagonal(T v)
+{
+    return { 
+        v, 0, 0, 0, 
+        0, v, 0, 0, 
+        0, 0, v, 0, 
+        0, 0, 0, 1 
+    };
+}
+
+template <typename T>
+static mat4t<T>
+transpose(mat4t<T> const & a)
+{
+    return {
+        a.row[0][0], a.row[1][0], a.row[2][0], a.row[3][0],
+        a.row[0][1], a.row[1][1], a.row[2][1], a.row[3][1],
+        a.row[0][2], a.row[1][2], a.row[2][2], a.row[3][2],
+        a.row[0][3], a.row[1][3], a.row[2][3], a.row[3][3],
+    };
+}
+
+template <typename T>
+static mat4t<T>
+scale(T x = 1, T y = 1, T z = 1)
+{
+    return { 
+        x, 0, 0, 0, 
+        0, y, 0, 0, 
+        0, 0, z, 0, 
+        0, 0, 0, 1 
+    };
+}
+
+template <typename T>
+static mat4t<T>
+scale(vec3t<T> const & scale_)
+{
+    return { 
+        scale_.x, 0, 0, 0, 
+        0, scale_.y, 0, 0, 
+        0, 0, scale_.z, 0, 
+        0, 0, 0, 1 
+    };
+}
+
+template <typename T>
+static mat4t<T>
+translate(T x = 0, T y = 0, T z = 0)
+{
+    return { 
+        1, 0, 0, x, 
+        0, 1, 0, y, 
+        0, 0, 1, z, 
+        0, 0, 0, 1 
+    };
+}
+
+template <typename T>
+static mat4t<T>
+translate(vec3t<T> const & translate_)
+{
+    return { 
+        1, 0, 0, translate_.x, 
+        0, 1, 0, translate_.y, 
+        0, 0, 1, translate_.z, 
+        0, 0, 0, 1 
+    };
+}
+
+template <typename T>
+static mat4t<T>
+rotate_x(T rad)
+{
+    T const cos_ = std::cos(rad);
+    T const sin_ = std::sin(rad);
+    return { 
+        1, 0, 0, 0, 
+        0, cos_, -sin_, 0, 
+        0, sin_, cos_, 0, 
+        0, 0, 0, 1 
+    };
+}
+
+template <typename T>
+static mat4t<T>
+rotate_y(T rad)
+{
+    T const cos_ = std::cos(rad);
+    T const sin_ = std::sin(rad);
+    return { 
+        cos_, 0, sin_, 0, 
+        0, 1, 0, 0, 
+        -sin_, 0, cos_, 0, 
+        0, 0, 0, 1 
+    };
+}
+
+template <typename T>
+static mat4t<T>
+rotate_z(T rad)
+{
+    T const cos_ = std::cos(rad);
+    T const sin_ = std::sin(rad);
+    return { 
+        cos_, -sin_, 0, 0, 
+        sin_, cos_, 0, 0, 
+        0, 0, 1, 0, 
+        0, 0, 0, 1 
+    };
+}
+
+template <typename T, class OS>
+static OS &
+operator<<(OS & out, mat4t<T> const & mat4)
+{
+    return out << " ["
+        << mat4.row[0][0] << "," << mat4.row[0][1] << "," << mat4.row[0][2] << "," << mat4.row[0][3] << ",\n"
+        " " << mat4.row[1][0] << "," << mat4.row[1][1] << "," << mat4.row[1][2] << "," << mat4.row[1][3] << ",\n"
+        " " << mat4.row[2][0] << "," << mat4.row[2][1] << "," << mat4.row[2][2] << "," << mat4.row[2][3] << ",\n"
+        " " << mat4.row[3][0] << "," << mat4.row[3][1] << "," << mat4.row[3][2] << "," << mat4.row[3][3] << ",\n"
+    << "] ";
+}
+
+/* projection */
+
+template <typename T>
+static constexpr mat4t<T> 
+ortho(T left, T right, T bottom, T top, T znear, T zfar)
+{
+    return {
+        T(2)/(right-left), 0, 0, 0,
+        0, T(2)/(top-bottom), 0, 0,
+        0, 0, -T(2)/(zfar-znear), 0,
+        0, 0, 0, 1
+    };
+}
+
+template <typename T>
+static constexpr mat4t<T> 
+frustum(T left, T right, T bottom, T top, T znear, T zfar)
+{
+    T const zfarMinusNear = zfar-znear;
+    return {
+        T(2)/(right-left), 0, 0, 0,
+        0, T(2)/(top-bottom), 0, 0,
+        0, 0, -T(2)/zfarMinusNear, 2*(zfar+znear)/zfarMinusNear,
+        0, 0, -1, 0
+    };
+}
+
+template <typename T>
+static constexpr mat4t<T> 
+fov(T fovDeg, T aspect, T znear, T zfar)
+{
+    T const fov = deg2rad(fovDeg);
+    T const zfarPlusNear  = zfar+znear;
+    T const zfarMinusNear = zfar-znear;
+    return {
+        T(1)/aspect/tan(fov/2), 0, 0, 0,
+        0, T(1)/tan(fov/2), 0, 0,
+        0, 0, -zfarPlusNear/zfarMinusNear, -2*zfarPlusNear/zfarMinusNear,
+        0, 0, -1, 0
+    };
+}
+
+/* transform */
+
+struct transform3
+{
+    vec3  scale        = {1.f,1.f,1.f};
+    vec3  scale_1st    = {1.f,1.f,1.f};
+    vec3  position     = {0.f,0.f,0.f};
+    // position before scale and rotate
+    vec3  position_1st = {0.f,0.f,0.f};
+    float rotate_z     = 0.f;
+    float rotate_z_1st = 0.f;
+
+    mat4 matrix() {
+        return 
+            vm::translate(this->position) *
+            vm::scale(this->scale) *
+            vm::rotate_z(this->rotate_z) *
+            vm::translate(this->position_1st) *
+            vm::scale(this->scale_1st) *
+            vm::rotate_z(this->rotate_z_1st);
+    }
+};
+
+/* */
+
+template <typename T, typename U = T> 
+static U
+map(T from, T from_min, T from_max, U to_min, U to_max)
+{
+    return to_min + (((from - from_min) / (from_max - from_min)) * (to_max - to_min));
+}
+
+template <typename T, typename U = T> 
+static U
+lerp(T factor, T from, T to)
+{
+    return ((T(1) - factor) * from) + (factor * to);
+}
+
+} // namespace vm
